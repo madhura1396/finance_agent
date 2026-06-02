@@ -1,0 +1,27 @@
+# Finance Portfolio Notification Agent — Python dependencies
+#
+# Install into a virtual environment:
+#   python3.11 -m venv .venv
+#   source .venv/bin/activate
+#   pip install -r requirements.txt
+
+# Anthropic Claude API client
+anthropic>=0.28.0
+
+# Official Anthropic MCP Python SDK (provides mcp.server, mcp.client, mcp.types)
+mcp>=1.0.0
+
+# Robinhood data access
+robin_stocks>=2.1.0
+
+# Scheduled jobs
+APScheduler>=3.10.0
+
+# Telegram bot
+python-telegram-bot>=21.0.0
+
+# Environment variable loading from .env file
+python-dotenv>=1.0.0
+
+# TOTP code generation for Robinhood MFA (if using TOTP secret)
+pyotp>=2.9.0
