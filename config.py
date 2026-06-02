@@ -146,7 +146,8 @@ def robinhood_login() -> None:
         username=ROBINHOOD_USERNAME,
         password=ROBINHOOD_PASSWORD,
         mfa_code=mfa_code or None,
-        store_session=False,
+        store_session=True,
+
     )
 
     logger.info("Robinhood authentication successful for %s", ROBINHOOD_USERNAME)
