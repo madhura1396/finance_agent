@@ -84,11 +84,13 @@ async def run_agent(prompt: str) -> str:
              tool calls have been resolved.
     """
 
+    import os
     from mcp.client.stdio import StdioServerParameters
 
     server_params = StdioServerParameters(
         command=config.MCP_SERVER_COMMAND[0],
         args=config.MCP_SERVER_COMMAND[1:],
+        env=os.environ.copy(),
     )
 
     async with stdio_client(server_params) as (read, write):
