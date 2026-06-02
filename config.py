@@ -133,6 +133,7 @@ def robinhood_login() -> None:
     """
 
     import logging
+    import sys
     import robin_stocks.robinhood as rh
 
     logger = logging.getLogger(__name__)
@@ -142,12 +143,18 @@ def robinhood_login() -> None:
         import pyotp
         mfa_code = pyotp.TOTP(mfa_code).now()
 
-    rh.login(
-        username=ROBINHOOD_USERNAME,
-        password=ROBINHOOD_PASSWORD,
-        mfa_code=mfa_code or None,
-        store_session=True,
-
-    )
+    # robin_stocks prints progress messages to stdout, which corrupts the MCP
+    # stdio JSON-RPC stream. Redirect stdout to stderr during login only.
+    _real_stdout = sys.stdout
+    sys.stdout = sys.stderr
+    try:
+        rh.login(
+            username=ROBINHOOD_USERNAME,
+            password=ROBINHOOD_PASSWORD,
+            mfa_code=mfa_code or None,
+            store_session=True,
+        )
+    finally:
+        sys.stdout = _real_stdout
 
     logger.info("Robinhood authentication successful for %s", ROBINHOOD_USERNAME)
