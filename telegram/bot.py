@@ -100,8 +100,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await update.message.reply_text("Thinking…")
 
     try:
-        from agent.client import run_agent_sync
-        response = run_agent_sync(prompt=user_text)
+        from agent.client import run_agent
+        response = await run_agent(prompt=user_text)
         await update.message.reply_text(response)
     except Exception:
         logger.exception("handle_message failed")
