@@ -1,30 +1,66 @@
 # Finance Portfolio Notification Agent
 
-A personal finance assistant that monitors your Robinhood portfolio and delivers AI-generated briefings to Telegram. Powered by Claude AI and the Model Context Protocol (MCP).
+A personal finance assistant that monitors your Robinhood portfolio and delivers AI-generated briefings to Telegram — built by creating a custom MCP (Model Context Protocol) server that exposes live financial data as tools and resources for Claude to reason over.
 
-## What it does
+## What is MCP?
 
-- **9am weekdays** — sends a morning briefing: portfolio value, overnight price moves, and relevant news
-- **4pm weekdays** — sends an evening summary: day's P&L, top gainer/loser, and 30-day trend context
-- **On demand** — message the Telegram bot any time to ask ad-hoc questions about your portfolio
+The [Model Context Protocol](https://modelcontextprotocol.io) is an open standard developed by Anthropic that defines how AI models connect to external data sources and tools. Instead of hardcoding API calls inside a prompt, you build an **MCP server** that exposes capabilities — tools, resources, and prompt templates — over a standard protocol. Any MCP-compatible client (like Claude) can then discover and call those capabilities dynamically.
 
-## Architecture
+This project builds a **custom MCP server from scratch** using the official Python SDK (`mcp` package) that gives Claude live access to a Robinhood portfolio.
+
+## What the custom MCP server exposes
+
+**Tools** — actions Claude can invoke:
+
+| Tool | Description |
+|---|---|
+| `get_portfolio` | Fetches all open positions with quantity, cost basis, current price, and unrealized P&L |
+| `get_price_changes` | Returns today's absolute and percentage price move for a list of symbols |
+| `get_relevant_news` | Fetches and deduplicates recent news articles per symbol from Robinhood |
+
+**Resources** — read-only data Claude can request:
+
+| Resource | Description |
+|---|---|
+| `historical_prices` | 30-day daily OHLCV data for all portfolio symbols, cached in memory for 1 hour |
+
+**Prompts** — reusable instruction templates:
+
+| Prompt | Description |
+|---|---|
+| `morning_briefing` | Instructs Claude to summarize overnight moves, news, and day-ahead context |
+| `evening_summary` | Instructs Claude to summarize the day's P&L, top movers, and 30-day trend |
+
+## How it works
 
 ```
 main.py
-├── scheduler/jobs.py        APScheduler cron jobs (9am, 4pm)
-├── telegram/bot.py          Telegram bot (inbound + outbound)
-└── agent/client.py          Claude tool-calling loop
+├── scheduler/jobs.py        APScheduler cron jobs (9am, 4pm weekdays)
+├── tg/bot.py                Telegram bot (inbound messages + outbound delivery)
+└── agent/client.py          MCP client + Claude tool-calling loop
         │
-        └── MCP subprocess
-                mcp_server/server.py
-                ├── tools/portfolio.py      get_portfolio
-                ├── tools/prices.py         get_price_changes
-                ├── tools/news.py           get_relevant_news
-                └── resources/historical.py historical_prices (30-day OHLCV)
+        └── MCP subprocess (stdio transport)
+                mcp_server/server.py       Custom MCP server
+                ├── tools/portfolio.py     get_portfolio
+                ├── tools/prices.py        get_price_changes
+                ├── tools/news.py          get_relevant_news
+                └── resources/historical.py  historical_prices
 ```
 
-The agent client spawns the MCP server as a subprocess over stdio. Claude calls tools via the MCP protocol; the server fetches live data from Robinhood and returns it as JSON.
+When a scheduled job or Telegram message triggers the agent:
+
+1. `agent/client.py` spawns `mcp_server/server.py` as a subprocess over **stdio transport**
+2. The client calls `session.list_tools()` to discover what the MCP server exposes
+3. Those tool definitions are forwarded to Claude via the Anthropic API
+4. Claude reasons over the prompt and calls tools as needed — the client routes each call back to the MCP server
+5. The loop continues until Claude produces a final text response
+6. The response is delivered to Telegram
+
+## What it does
+
+- **9am weekdays** — morning briefing: portfolio value, overnight price moves, relevant news
+- **4pm weekdays** — evening summary: day's P&L, top gainer/loser, 30-day trend context
+- **On demand** — message the Telegram bot any time to ask ad-hoc questions about your portfolio
 
 ## Setup
 
@@ -107,7 +143,7 @@ finance_agent/
 │   ├── client.py       MCP client + Claude tool-calling loop
 │   └── prompts.py      Morning and evening prompt templates
 ├── mcp_server/
-│   ├── server.py       MCP server (tools, resources, prompts)
+│   ├── server.py       Custom MCP server entry point
 │   ├── tools/
 │   │   ├── portfolio.py
 │   │   ├── prices.py
@@ -116,7 +152,7 @@ finance_agent/
 │       └── historical.py
 ├── scheduler/
 │   └── jobs.py         APScheduler cron job definitions
-├── telegram/
+├── tg/
 │   └── bot.py          Telegram bot send + receive
 ├── config.py           Environment variable loading + Robinhood login
 ├── main.py             Entry point
