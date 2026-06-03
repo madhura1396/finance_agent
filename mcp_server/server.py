@@ -349,13 +349,43 @@ async def run() -> None:
         Nothing — runs until the client process closes stdin
     """
 
-    config.robinhood_login()
+    import traceback
+    import logging
 
-    # stdio_server is the MCP SDK utility that wires the Server to stdin/stdout.
-    # It yields (read_stream, write_stream) which app.run() consumes.
-    async with stdio_server() as (read_stream, write_stream):
-        await app.run(
-            read_stream,
-            write_stream,
-            app.create_initialization_options(),
-        )
+    logging.basicConfig(
+        filename="/tmp/mcp_server_crash.log",
+        level=logging.DEBUG,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
+    log = logging.getLogger("mcp_server")
+
+    log.info("MCP server run() started")
+
+    try:
+        log.info("calling robinhood_login()")
+        config.robinhood_login()
+        log.info("robinhood_login() succeeded")
+    except Exception:
+        log.exception("robinhood_login() failed")
+        raise
+
+    log.info("starting stdio_server()")
+    try:
+        # stdio_server is the MCP SDK utility that wires the Server to stdin/stdout.
+        # It yields (read_stream, write_stream) which app.run() consumes.
+        async with stdio_server() as (read_stream, write_stream):
+            log.info("stdio_server started, calling app.run()")
+            await app.run(
+                read_stream,
+                write_stream,
+                app.create_initialization_options(),
+            )
+            log.info("app.run() returned")
+    except Exception:
+        log.exception("stdio_server/app.run() failed")
+        raise
+
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(run())

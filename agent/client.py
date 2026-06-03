@@ -85,15 +85,21 @@ async def run_agent(prompt: str) -> str:
     """
 
     import os
+    from pathlib import Path
     from mcp.client.stdio import StdioServerParameters
+
+    _project_dir = str(Path(__file__).parent.parent)
 
     server_params = StdioServerParameters(
         command=config.MCP_SERVER_COMMAND[0],
         args=config.MCP_SERVER_COMMAND[1:],
         env=os.environ.copy(),
+        cwd=_project_dir,
     )
 
-    async with stdio_client(server_params) as (read, write):
+    _errlog = open("/tmp/mcp_server_stderr.log", "a")
+
+    async with stdio_client(server_params, errlog=_errlog) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
 
