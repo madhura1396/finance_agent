@@ -24,7 +24,7 @@ import signal
 import sys
 
 from scheduler.jobs import create_scheduler
-from telegram.bot import create_bot
+from tg.bot import create_bot
 
 # Configure root logger so all modules' log messages appear in the console
 logging.basicConfig(

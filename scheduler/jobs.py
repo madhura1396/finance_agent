@@ -35,7 +35,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from agent.client import run_agent_sync
 from agent.prompts import MORNING_BRIEFING_TEMPLATE, EVENING_SUMMARY_TEMPLATE
-from telegram.bot import send_message
+from tg.bot import send_message
 import config
 
 

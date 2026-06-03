@@ -26,7 +26,7 @@ from mcp.client.stdio import stdio_client
 from mcp import types as mcp_types
 
 import config
-from telegram.bot import send_message
+from tg.bot import send_message
 
 
 # ---------------------------------------------------------------------------
